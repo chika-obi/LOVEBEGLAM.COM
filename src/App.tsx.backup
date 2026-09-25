@@ -1,0 +1,847 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+export default function App() {
+  const [navOpen, setNavOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [contactName, setContactName] = useState('');
+
+  const galleryImages = [
+    { src: '/image1.jpg', alt: 'gallery1' },
+    { src: '/image2.jpg', alt: 'gallery2' },
+    { src: '/image3.jpg', alt: 'gallery3' },
+    { src: '/image4.jpg', alt: 'gallery4' },
+    { src: '/image5.jpg', alt: 'gallery5' },
+    { src: '/image6.jpg', alt: 'gallery6' },
+  ];
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Canvas glitter particles effect (identical to original code)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let W = (canvas.width = window.innerWidth);
+    let H = (canvas.height = window.innerHeight);
+
+    const handleResize = () => {
+      if (!canvas) return;
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', handleResize);
+
+    const rand = (min: number, max: number) => Math.random() * (max - min) + min;
+    const particles: Array<{ x: number; y: number; r: number; a: number; vy: number }> = [];
+
+    for (let i = 0; i < 80; i++) {
+      particles.push({
+        x: rand(0, W),
+        y: rand(0, H),
+        r: rand(0.6, 2.6),
+        a: rand(0.1, 0.9),
+        vy: rand(0.1, 0.6),
+      });
+    }
+
+    let animationFrameId: number;
+
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+      for (const p of particles) {
+        ctx.beginPath();
+        ctx.globalAlpha = p.a * 0.9;
+        ctx.fillStyle = 'rgba(255,255,255,1)';
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+        p.y -= p.vy;
+        p.x += Math.sin(p.y * 0.01 + p.r);
+        if (p.y < -10) {
+          p.y = H + 10;
+          p.x = rand(0, W);
+        }
+      }
+      animationFrameId = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  // Automatic slideshow interval (4 seconds, identical to original code)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSlideIndex((prev) => (prev + 1) % galleryImages.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [galleryImages.length]);
+
+  // Scroll to top button visibility check
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handlePrevSlide = () => {
+    setSlideIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
+  };
+
+  const handleNextSlide = () => {
+    setSlideIndex((prev) => (prev + 1) % galleryImages.length);
+  };
+
+  const scrollToSection = (id: string) => {
+    setNavOpen(false);
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleContactSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const nameInput = form.querySelector('input[type="text"]') as HTMLInputElement;
+    const submittedName = nameInput?.value || 'Friend';
+    setContactName(submittedName);
+    setContactSubmitted(true);
+    form.reset();
+  };
+
+  return (
+    <div className="relative w-full bg-white text-[#0f0f10] overflow-x-hidden selection:bg-[#ff4d9e] selection:text-white">
+      {/* ========================================================================= */}
+      {/* 1. Responsive Navigation Bar */}
+      {/* ========================================================================= */}
+      <nav className="fixed top-0 left-0 w-full bg-black/45 backdrop-blur-[2px] z-[1000] py-3 transition-colors duration-300">
+        <div className="max-w-[1200px] mx-auto px-6 sm:px-8 flex items-center justify-between">
+          <div className="font-playfair text-[22px] text-white font-bold tracking-normal">
+            LoveDeGlam
+          </div>
+
+          {/* Hamburger Button for Mobile */}
+          <button
+            onClick={() => setNavOpen(!navOpen)}
+            className="md:hidden flex flex-col gap-[5px] cursor-pointer p-1 z-50 focus:outline-none"
+            aria-label="Toggle navigation"
+          >
+            <span
+              className={`w-[26px] h-[3px] bg-white rounded-full transition-transform duration-300 ${
+                navOpen ? 'rotate-45 translate-y-[8px]' : ''
+              }`}
+            ></span>
+            <span
+              className={`w-[26px] h-[3px] bg-white rounded-full transition-opacity duration-300 ${
+                navOpen ? 'opacity-0' : ''
+              }`}
+            ></span>
+            <span
+              className={`w-[26px] h-[3px] bg-white rounded-full transition-transform duration-300 ${
+                navOpen ? '-rotate-45 -translate-y-[8px]' : ''
+              }`}
+            ></span>
+          </button>
+
+          {/* Nav Links */}
+          <ul
+            className={`list-none flex gap-7 m-0 p-0 transition-all duration-300 ${
+              navOpen
+                ? 'flex flex-col items-center gap-5 py-6 absolute top-[56px] left-0 w-full bg-black/90 shadow-2xl md:static md:flex-row md:w-auto md:bg-transparent md:p-0'
+                : 'hidden md:flex'
+            }`}
+          >
+            <li>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToTop();
+                  setNavOpen(false);
+                }}
+                className="text-white font-medium text-[15px] hover:text-[#ff7ab6] transition-colors"
+              >
+                Home
+              </a>
+            </li>
+            <li>
+              <a
+                href="#services"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('services');
+                }}
+                className="text-white font-medium text-[15px] hover:text-[#ff7ab6] transition-colors"
+              >
+                Services
+              </a>
+            </li>
+            <li>
+              <a
+                href="#gallery"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('gallery');
+                }}
+                className="text-white font-medium text-[15px] hover:text-[#ff7ab6] transition-colors"
+              >
+                Gallery
+              </a>
+            </li>
+            <li>
+              <a
+                href="#videos"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('videos');
+                }}
+                className="text-white font-medium text-[15px] hover:text-[#ff7ab6] transition-colors"
+              >
+                Videos
+              </a>
+            </li>
+            <li>
+              <a
+                href="#testimonials"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('testimonials');
+                }}
+                className="text-white font-medium text-[15px] hover:text-[#ff7ab6] transition-colors"
+              >
+                Testimonials
+              </a>
+            </li>
+            <li>
+              <a
+                href="#contact"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('contact');
+                }}
+                className="text-white font-medium text-[15px] hover:text-[#ff7ab6] transition-colors"
+              >
+                Contact
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      {/* Glitter Particle Canvas */}
+      <canvas
+        ref={canvasRef}
+        id="glitter"
+        className="absolute inset-0 z-0 pointer-events-none w-full h-full"
+      />
+
+      {/* ========================================================================= */}
+      {/* 2. Hero Section */}
+      {/* ========================================================================= */}
+      <header className="hero">
+        {/* Hero Left Content */}
+        <div className="hero-inner wrap">
+          {/* Logo Card */}
+          <div className="logo card">
+            <img
+              src="/logo.jpg"
+              alt="LoveDeGlam logo"
+            />
+            <div>
+              <h1>LoveDeGlam</h1>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.9)' }}>
+                Luxury · Confidence · Transformation
+              </div>
+            </div>
+          </div>
+
+          <h2 className="lead fade-up">
+            Glam that tells your story.
+          </h2>
+
+          <p className="lead-desc fade-up">
+            Professional makeup, premium frontal installation and bespoke hair revamping —
+            handcrafted by experienced stylists. Book a consultation, get a trial, and step out
+            glowing.
+          </p>
+
+          <div className="actions fade-up">
+            <button
+              onClick={() => scrollToSection('contact')}
+              className="btn primary"
+              id="bookNow"
+            >
+              Book a Consultation
+            </button>
+            <button
+              onClick={() => scrollToSection('services')}
+              className="btn ghost"
+              id="viewMore"
+            >
+              Our Services
+            </button>
+          </div>
+
+          <div style={{ height: '24px' }}></div>
+
+          <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div>⭐ 4.9 (2.3k reviews)</div>
+            <div>•</div>
+            <div>Professional stylists</div>
+            <div>•</div>
+            <div>Premium products</div>
+          </div>
+        </div>
+
+        {/* Hero Right Showcase Card */}
+        <div className="showcase wrap">
+          <div className="card fade-up">
+            <div className="showcase-inner">
+              <div className="hero-img">
+                <img
+                  src="/background.jpg"
+                  alt="LoveDeGlam showcase"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Decorative SVG Wave */}
+        <svg
+          className="waves"
+          viewBox="0 0 1200 200"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id="g1" x1="0" x2="1">
+              <stop offset="0%" stopColor="var(--pink-1)" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="var(--pink-2)" stopOpacity="0.45" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M0,120 C200,180 400,40 600,80 C800,120 1000,20 1200,80 L1200,200 L0,200 Z"
+            fill="url(#g1)"
+          ></path>
+        </svg>
+      </header>
+
+      {/* ========================================================================= */}
+      {/* 3. Main Content Area */}
+      {/* ========================================================================= */}
+      <main>
+        {/* ======================================================================= */}
+        {/* Services Section */}
+        {/* ======================================================================= */}
+        <section
+          id="services"
+          className="relative text-center py-8"
+          style={{
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.02), #ff4d9e)',
+          }}
+        >
+          <div className="max-w-[1200px] mx-auto px-6 sm:px-8">
+            <h2 className="mt-0 font-playfair text-[32px] sm:text-[36px] font-bold text-white mb-6">
+              Our Signature Services
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[22px] my-8">
+              {/* Card 1: Makeup Artistry & Frontal Installation */}
+              <article
+                className="p-7 rounded-[16px] transition-all duration-360 text-left shadow-[0_8px_20px_rgba(15,15,16,0.04)] hover:-translate-y-2.5 hover:shadow-[0_22px_40px_rgba(15,15,16,0.08)] group"
+                style={{
+                  background: 'linear-gradient(180deg, rgba(8, 8, 8, 0.02), #ff4d9e)',
+                  boxShadow: '#ff2e84',
+                }}
+              >
+                <h3 className="m-0 mb-2 text-[20px] font-bold text-[#0f0f10] group-hover:text-white transition-colors">
+                  All Kinds (Makeup Artistry)
+                </h3>
+                <p className="text-[14px] text-[#333] group-hover:text-white transition-colors mb-4">
+                  Bridal, editorial, photoshoots, and everyday glam. We use premium, skin-safe
+                  brands and tailor looks to your skin tone and style.
+                </p>
+                <h3 className="m-0 mb-2 text-[20px] font-bold text-[#0f0f10] group-hover:text-white transition-colors">
+                  Frontal Installation
+                </h3>
+                <p className="text-[14px] text-[#333] group-hover:text-white transition-colors">
+                  Seamless frontal installs with natural hairlines. Consultation, custom
+                  color-matching, and maintenance guidance included.
+                </p>
+              </article>
+
+              {/* Card 2: Hair Revamping */}
+              <article
+                className="p-7 rounded-[16px] transition-all duration-360 text-left shadow-[0_8px_20px_rgba(15,15,16,0.04)] hover:-translate-y-2.5 hover:shadow-[0_22px_40px_rgba(15,15,16,0.08)] group"
+                style={{
+                  background: 'linear-gradient(180deg, rgba(8, 8, 8, 0.02), #ff4d9e)',
+                  boxShadow: '#ff2e84',
+                }}
+              >
+                <h3 className="m-0 mb-2 text-[20px] font-bold text-[#0f0f10] group-hover:text-white transition-colors">
+                  Hair Revamping
+                </h3>
+                <ul className="list-disc pl-5 mb-4 text-[14px] text-[#222] group-hover:text-white transition-colors space-y-1">
+                  <li>Custom wig making</li>
+                  <li>Premium revamping</li>
+                  <li>premium silk infusion service</li>
+                  <li>curl definition</li>
+                  <li>Wig styling</li>
+                </ul>
+                <p className="text-[14px] text-[#333] group-hover:text-white transition-colors">
+                  Glueless and customization Cutting-edge restyles, extensions, color refresh, and
+                  healthy hair treatments to bring your vision to life.
+                </p>
+              </article>
+
+              {/* Card 3: Training (Hair-Installation) */}
+              <article
+                className="p-7 rounded-[16px] transition-all duration-360 text-left shadow-[0_8px_20px_rgba(15,15,16,0.04)] hover:-translate-y-2.5 hover:shadow-[0_22px_40px_rgba(15,15,16,0.08)] group"
+                style={{
+                  background: 'linear-gradient(180deg, rgba(8, 8, 8, 0.02), #ff4d9e)',
+                  boxShadow: '#ff2e84',
+                }}
+              >
+                <h3 className="m-0 mb-2 text-[20px] font-bold text-[#0f0f10] group-hover:text-white transition-colors">
+                  Training <br />(Hair-Installation)
+                </h3>
+                <ul className="list-disc pl-5 text-[14px] text-[#222] group-hover:text-white transition-colors space-y-1">
+                  <li>Glued &amp; Glueless Frontal Wig Installation</li>
+                  <li>Frontal Ponytails &amp; Sew-ins</li>
+                  <li>5x5, 6x6, 7x6 Closures</li>
+                  <li>360 &amp; Double Frontal Wigs</li>
+                  <li>Natural &amp; Relaxed Hair Ponytails</li>
+                  <li>Braided Frontal Wigs</li>
+                  <li>Premium Wig Revamping &amp; Styling All Hair Types</li>
+                </ul>
+              </article>
+
+              {/* Card 4: Training (Makeup) */}
+              <article
+                className="p-7 rounded-[16px] transition-all duration-360 text-left shadow-[0_8px_20px_rgba(15,15,16,0.04)] hover:-translate-y-2.5 hover:shadow-[0_22px_40px_rgba(15,15,16,0.08)] group"
+                style={{
+                  background: 'linear-gradient(180deg, rgba(8, 8, 8, 0.02), #ff4d9e)',
+                  boxShadow: '#ff2e84',
+                }}
+              >
+                <h3 className="m-0 mb-2 text-[20px] font-bold text-[#0f0f10] group-hover:text-white transition-colors">
+                  Training <br />(Makeup)
+                </h3>
+                <ul className="list-disc pl-5 text-[14px] text-[#222] group-hover:text-white transition-colors space-y-1">
+                  <li>flawless long wear bridal makeup on different skin types and tones.</li>
+                  <li>
+                    Different eyeshadow techniques (How to switch from simple to bold
+                    eyeshadows)
+                  </li>
+                  <li>Skin prep on different skin types</li>
+                  <li>Different products recommendations &amp; awareness</li>
+                  <li>Phone editing (Picture and Video)</li>
+                  <li>Light set up</li>
+                  <li>Deep Discussions on the business</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        {/* ======================================================================= */}
+        {/* Gallery Section with Exact Slider */}
+        {/* ======================================================================= */}
+        <section
+          id="gallery"
+          aria-label="Gallery"
+          className="relative py-[80px] px-5 text-center -top-8"
+          style={{
+            background: 'linear-gradient(0deg, rgba(153, 51, 107, 0.02), #ff4d9e)',
+          }}
+        >
+          <div className="max-w-[1200px] mx-auto">
+            <h2 className="font-playfair text-[34px] font-bold text-white mb-6">Gallery</h2>
+
+            {/* Slider Container */}
+            <div className="relative max-w-[1000px] mx-auto overflow-hidden rounded-[10px] shadow-2xl">
+              {/* Prev Button */}
+              <button
+                onClick={handlePrevSlide}
+                className="absolute left-[10px] top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white border-none text-[30px] px-[15px] py-[10px] cursor-pointer rounded-[5px] z-20 transition-colors"
+                aria-label="Previous slide"
+              >
+                &#10094;
+              </button>
+
+              {/* Slides Track */}
+              <div
+                className="flex transition-transform duration-500 ease-out"
+                style={{ transform: `translateX(-${slideIndex * 100}%)` }}
+              >
+                {galleryImages.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img.src}
+                    alt={img.alt}
+                    className="w-full max-w-[1000px] h-[400px] object-cover rounded-[10px] shrink-0"
+                  />
+                ))}
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={handleNextSlide}
+                className="absolute right-[10px] top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white border-none text-[30px] px-[15px] py-[10px] cursor-pointer rounded-[5px] z-20 transition-colors"
+                aria-label="Next slide"
+              >
+                &#10095;
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* ======================================================================= */}
+        {/* Video Section */}
+        {/* ======================================================================= */}
+        <section id="videos" className="relative py-[80px] bg-[#f9fafb] -top-32">
+          <div className="max-w-[1200px] mx-auto px-6 sm:px-8">
+            <div className="text-center mb-10">
+              <h2 className="font-playfair text-[32px] mb-[10px] font-bold text-[#0f0f10]">
+                See Our Work In Action
+              </h2>
+              <p className="text-[#666] text-[15px]">
+                Watch some of our recent transformations and beauty sessions.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-[25px]">
+              <div className="rounded-[14px] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.1)] bg-black">
+                <iframe
+                  className="w-full h-[220px] border-0"
+                  src="https://www.youtube.com/embed/VIDEO_ID"
+                  title="LoveDeGlam transformation 1"
+                  allowFullScreen
+                ></iframe>
+              </div>
+              <div className="rounded-[14px] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.1)] bg-black">
+                <iframe
+                  className="w-full h-[220px] border-0"
+                  src="https://www.youtube.com/embed/VIDEO_ID"
+                  title="LoveDeGlam transformation 2"
+                  allowFullScreen
+                ></iframe>
+              </div>
+              <div className="rounded-[14px] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.1)] bg-black">
+                <iframe
+                  className="w-full h-[220px] border-0"
+                  src="https://www.youtube.com/embed/VIDEO_ID"
+                  title="LoveDeGlam transformation 3"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ======================================================================= */}
+        {/* Testimonials Section */}
+        {/* ======================================================================= */}
+        <section id="testimonials" className="relative text-center pt-0 -top-28">
+          <div className="max-w-[1200px] mx-auto px-6 sm:px-8">
+            <h2 className="font-playfair text-[32px] font-bold text-[#0f0f10] mb-8">
+              What clients say
+            </h2>
+
+            <div className="grid grid-cols-1 gap-[50px] bg-[#ff7ab6] p-8 sm:p-12 rounded-[20px] shadow-lg">
+              <div className="min-w-[320px] p-[18px] rounded-[12px] bg-white/[0.12] backdrop-blur-[6px] hover:bg-[#ff4d9e] transition-colors text-white">
+                <strong className="text-[17px] font-bold">Amaka O.</strong>
+                <p className="mt-2 text-[15px]">
+                  "LoveDeGlam made my wedding look effortless. The makeup stayed fresh all day —
+                  highly recommended!"
+                </p>
+              </div>
+
+              <div className="min-w-[320px] p-[18px] rounded-[12px] bg-white/[0.12] backdrop-blur-[6px] hover:bg-[#ff4d9e] transition-colors text-white">
+                <strong className="text-[17px] font-bold">Jade N.</strong>
+                <p className="mt-2 text-[15px]">
+                  "The frontal install was flawless. Natural hairline and great aftercare tips."
+                </p>
+              </div>
+
+              <div className="min-w-[320px] p-[18px] rounded-[12px] bg-white/[0.12] backdrop-blur-[6px] hover:bg-[#ff4d9e] transition-colors text-white">
+                <strong className="text-[17px] font-bold">Sarah T.</strong>
+                <p className="mt-2 text-[15px]">
+                  "Hair revamp gave me a new look — love the color and the healthy finish."
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ======================================================================= */}
+        {/* Floating Social Contact Bar */}
+        {/* ======================================================================= */}
+        <div className="fixed bottom-[60px] right-6 sm:right-10 flex flex-col gap-[14px] z-[999] max-[600px]:flex-row max-[600px]:bottom-5 max-[600px]:left-1/2 max-[600px]:-translate-x-1/2 max-[600px]:right-auto max-[600px]:gap-4">
+          <a
+            href="mailto:lovedeglam@gmail.com"
+            className="w-[50px] h-[50px] rounded-full flex items-center justify-center text-[22px] text-white no-underline transition-all duration-300 shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:scale-110 hover:-translate-y-[5px] hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)] bg-[#D44638]"
+            title="Email"
+          >
+            <i className="fa-solid fa-envelope"></i>
+          </a>
+
+          <a
+            href="https://wa.me/2348095294480?text=Hello%20LoveDeGlam!%20I%20would%20like%20to%20book%20a%20session."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-[50px] h-[50px] rounded-full flex items-center justify-center text-[22px] text-white no-underline transition-all duration-300 shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:scale-110 hover:-translate-y-[5px] hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)] bg-[#25D366]"
+            title="WhatsApp"
+          >
+            <i className="fa-brands fa-whatsapp"></i>
+          </a>
+
+          <a
+            href="https://youtube.com/@lovedeglam?si=Tva3S1B6eR4VljjR"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-[50px] h-[50px] rounded-full flex items-center justify-center text-[22px] text-white no-underline transition-all duration-300 shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:scale-110 hover:-translate-y-[5px] hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)] bg-[#FF0000]"
+            title="YouTube"
+          >
+            <i className="fa-brands fa-youtube"></i>
+          </a>
+
+          <a
+            href="https://www.facebook.com/share/1A4atmAeEw/?mibextid=wwXIfr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-[50px] h-[50px] rounded-full flex items-center justify-center text-[22px] text-white no-underline transition-all duration-300 shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:scale-110 hover:-translate-y-[5px] hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)] bg-[#1877F2]"
+            title="Facebook"
+          >
+            <i className="fa-brands fa-facebook-f"></i>
+          </a>
+
+          <a
+            href="https://www.tiktok.com/@love.de.glam?_t=ZS-90MDaXhYsc5&_r=1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-[50px] h-[50px] rounded-full flex items-center justify-center text-[22px] text-white no-underline transition-all duration-300 shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:scale-110 hover:-translate-y-[5px] hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)] bg-[#000000]"
+            title="TikTok"
+          >
+            <i className="fa-brands fa-tiktok"></i>
+          </a>
+
+          <a
+            href="https://www.instagram.com/lovedeglam?igsh=YWYzYmcydDJyZGg0&utm_source=qr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-[50px] h-[50px] rounded-full flex items-center justify-center text-[22px] text-white no-underline transition-all duration-300 shadow-[0_4px_14px_rgba(0,0,0,0.25)] hover:scale-110 hover:-translate-y-[5px] hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)]"
+            style={{
+              background: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4)',
+            }}
+            title="Instagram"
+          >
+            <i className="fa-brands fa-instagram"></i>
+          </a>
+        </div>
+
+        {/* ======================================================================= */}
+        {/* Contact Section */}
+        {/* ======================================================================= */}
+        <section id="contact" className="relative -top-40 bg-[#f9fafb] py-16">
+          <div className="max-w-[1100px] mx-auto px-5">
+            <div className="text-center mb-[50px]">
+              <h2 className="font-playfair text-[34px] mb-[10px] font-bold text-[#0f0f10]">
+                Get In Touch
+              </h2>
+              <p className="text-[#666] max-w-[600px] mx-auto leading-[1.6] text-[15px]">
+                We'd love to hear from you. Whether you're booking a session, asking questions, or
+                requesting a consultation — send us a message.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-10">
+              {/* CONTACT DETAILS */}
+              <div className="flex flex-col gap-[18px]">
+                <div className="flex items-center gap-[15px] bg-pink-200 p-[18px] rounded-[12px] shadow-[0_5px_20px_rgba(0,0,0,0.05)] transition-transform duration-300 hover:-translate-y-1">
+                  <span className="text-[22px]">📍</span>
+                  <div>
+                    <h4 className="text-[15px] font-bold mb-1 text-[#0f0f10]">Location</h4>
+                    <p className="text-[14px] text-[#555] m-0">
+                      No 11 Ebony Road, Oroazi, Port Harcourt, Rivers State, Nigeria
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-[15px] bg-pink-200 p-[18px] rounded-[12px] shadow-[0_5px_20px_rgba(0,0,0,0.05)] transition-transform duration-300 hover:-translate-y-1">
+                  <span className="text-[22px]">📞</span>
+                  <div>
+                    <h4 className="text-[15px] font-bold mb-1 text-[#0f0f10]">Phone</h4>
+                    <p className="text-[14px] text-[#555] m-0 leading-relaxed">
+                      +234 907 373 3455 <br />
+                      +234 916 264 8527 <br />
+                      +234 809 529 4480
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-[15px] bg-pink-200 p-[18px] rounded-[12px] shadow-[0_5px_20px_rgba(0,0,0,0.05)] transition-transform duration-300 hover:-translate-y-1">
+                  <span className="text-[22px]">✉</span>
+                  <div>
+                    <h4 className="text-[15px] font-bold mb-1 text-[#0f0f10]">Email</h4>
+                    <p className="text-[14px] text-[#555] m-0">lovedeglam@gmail.com</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-[15px] bg-pink-200 p-[18px] rounded-[12px] shadow-[0_5px_20px_rgba(0,0,0,0.05)] transition-transform duration-300 hover:-translate-y-1">
+                  <span className="text-[22px]">⏰</span>
+                  <div>
+                    <h4 className="text-[15px] font-bold mb-1 text-[#0f0f10]">Working Hours</h4>
+                    <p className="text-[14px] text-[#555] m-0">Mon – Sat : 9AM – 6PM</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CONTACT FORM */}
+              <form
+                id="contactForm"
+                onSubmit={handleContactSubmit}
+                className="bg-pink-200 p-7 sm:p-[35px] rounded-[14px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] flex flex-col"
+              >
+                {contactSubmitted && (
+                  <div className="mb-4 p-4 rounded-lg bg-white/80 text-[#0f0f10] text-sm font-semibold border border-pink-400">
+                    Thanks, {contactName}! We received your request and will contact you soon.
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="flex flex-col mb-[18px]">
+                    <label className="text-[14px] mb-[6px] font-medium text-[#0f0f10]">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter your name"
+                      required
+                      className="p-3 rounded-lg border border-[#ddd] bg-white text-[14px] transition-all focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+                    />
+                  </div>
+
+                  <div className="flex flex-col mb-[18px]">
+                    <label className="text-[14px] mb-[6px] font-medium text-[#0f0f10]">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="Enter your email"
+                      required
+                      className="p-3 rounded-lg border border-[#ddd] bg-white text-[14px] transition-all focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="flex flex-col mb-[18px]">
+                    <label className="text-[14px] mb-[6px] font-medium text-[#0f0f10]">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="Optional"
+                      className="p-3 rounded-lg border border-[#ddd] bg-white text-[14px] transition-all focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+                    />
+                  </div>
+
+                  <div className="flex flex-col mb-[18px]">
+                    <label className="text-[14px] mb-[6px] font-medium text-[#0f0f10]">
+                      Service
+                    </label>
+                    <select className="p-3 rounded-lg border border-[#ddd] bg-white text-[14px] transition-all focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
+                      <option>Select a service</option>
+                      <option>Makeup Session</option>
+                      <option>Bridal Makeup</option>
+                      <option>Training</option>
+                      <option>Consultation</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col mb-[18px]">
+                  <label className="text-[14px] mb-[6px] font-medium text-[#0f0f10]">
+                    Your Message
+                  </label>
+                  <textarea
+                    rows={8}
+                    placeholder="Tell us what you need..."
+                    className="p-3 rounded-lg border border-[#ddd] bg-white text-[14px] transition-all focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10 resize-none"
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-[14px] border-none rounded-lg bg-[#111827] text-white text-[15px] font-semibold cursor-pointer transition-colors duration-300 hover:bg-[#ff4d9e] hover:text-[#111827]"
+                >
+                  Send Message
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* ========================================================================= */}
+      {/* 4. Footer */}
+      {/* ========================================================================= */}
+      <footer
+        className="relative -top-32 text-center py-6 flex items-center justify-center"
+        style={{
+          background: 'linear-gradient(10deg, rgba(255,255,255,0.02), #ff4d9e)',
+        }}
+      >
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-gradient-to-br from-white/[0.08] to-white/[0.02] rounded-[18px] p-[22px] backdrop-blur-[8px] shadow-[0_8px_30px_rgba(0,0,0,0.25)] border border-white/10">
+            <img
+              src="/logo.jpg"
+              alt="LoveDeGlam logo"
+              className="w-14 h-14 rounded-[14px] object-cover border-2 border-white/20"
+            />
+            <small className="text-white text-sm font-medium">
+              © {new Date().getFullYear()} LoveDeGlam — All rights reserved. Built with care.
+            </small>
+            <img
+              src="/logo.jpg"
+              alt="LoveDeGlam logo"
+              className="w-14 h-14 rounded-[14px] object-cover border-2 border-white/20"
+            />
+          </div>
+        </div>
+      </footer>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          id="scrollTopBtn"
+          title="Back to top"
+          className="fixed bottom-[30px] right-[30px] z-[999] bg-gradient-to-r from-[#ff7ab6] to-[#ff4d9e] text-white border-none py-[14px] px-[18px] rounded-full cursor-pointer text-[18px] shadow-[0_4px_14px_rgba(0,0,0,0.3)] hover:-translate-y-1 hover:opacity-90 transition-all flex items-center justify-center"
+        >
+          ⬆
+        </button>
+      )}
+    </div>
+  );
+}

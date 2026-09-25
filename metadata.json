@@ -1,0 +1,6 @@
+{
+  "name": "LoveDeGlam",
+  "description": "LoveDeGlam — All kinds of makeup, frontal installation, and hair revamping. Premium beauty services.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
